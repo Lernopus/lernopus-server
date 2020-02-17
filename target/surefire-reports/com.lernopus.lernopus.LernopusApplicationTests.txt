@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: com.lernopus.lernopus.LernopusApplicationTests
--------------------------------------------------------------------------------
-Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 46.761 s - in com.lernopus.lernopus.LernopusApplicationTests
