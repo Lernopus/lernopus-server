@@ -65,3 +65,4 @@ app:
       - http://localhost:3000/oauth2/redirect
       - myandroidapp://oauth2/redirect
       - myiosapp://oauth2/redirect
+      - https://dry-reaches-40468.herokuapp.com/oauth2/redirect
