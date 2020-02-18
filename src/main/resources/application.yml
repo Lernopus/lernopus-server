@@ -13,6 +13,9 @@ spring:
         password: xy0PSa2qQdxtKvpBOHNM
         url: jdbc:mysql://bxleex2qr0yvdlg28lhr-mysql.services.clever-cloud.com/bxleex2qr0yvdlg28lhr
         username: uw65aaervmxpkfrq
+        max-active: 3
+        spring.datasource.test-on-borrow: true
+
     jackson:
         serialization:
             WRITE_DATES_AS_TIMESTAMPS: false
