@@ -66,3 +66,4 @@ app:
       - myandroidapp://oauth2/redirect
       - myiosapp://oauth2/redirect
       - https://dry-reaches-40468.herokuapp.com/oauth2/redirect
+      - https://shielded-citadel-77506.herokuapp.com/oauth2/redirect

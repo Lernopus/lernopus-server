@@ -86,6 +86,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                     URI authorizedURI = URI.create(authorizedRedirectUri);
                     System.out.println("authorizedURI.getHost() -----" + authorizedURI.getHost());
                     System.out.println("clientRedirectUri.getHost() -----" + clientRedirectUri.getHost());
+                    System.out.println("authorizedURI.getPort() -----" + authorizedURI.getPort());
+                    System.out.println("clientRedirectUri.getPort() -----" + clientRedirectUri.getPort());
                     if(authorizedURI.getHost().equalsIgnoreCase(clientRedirectUri.getHost())) {
                         return true;
                     }
