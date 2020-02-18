@@ -84,6 +84,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 .anyMatch(authorizedRedirectUri -> {
                     // Only validate host and port. Let the clients use different paths if they want to
                     URI authorizedURI = URI.create(authorizedRedirectUri);
+                    System.out.println("authorizedURI.getHost() -----" + authorizedURI.getHost());
+                    System.out.println("clientRedirectUri.getHost() -----" + clientRedirectUri.getHost());
                     if(authorizedURI.getHost().equalsIgnoreCase(clientRedirectUri.getHost())) {
                         return true;
                     }
