@@ -40,7 +40,7 @@ public class LaLearnUser extends LaDateAudit {
 
     @NotBlank
     @Column(name = "la_user_name")
-    @Size(max = 8)
+    @Size(max = 50)
     private String laUserName;
 
     @NotBlank

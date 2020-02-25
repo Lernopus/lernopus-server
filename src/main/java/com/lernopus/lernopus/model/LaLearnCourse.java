@@ -61,7 +61,7 @@ public class LaLearnCourse extends LaUserDateAudit {
     private String laCourseContentHtml;
 
     @NotBlank
-    @Size(max = 8)
+    @Size(max = 50)
     @Column(name = "la_author_id")
     private String laAuthorId;
     
