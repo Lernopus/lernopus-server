@@ -50,6 +50,7 @@ CREATE TABLE `la_learn_user_roles` (
   CONSTRAINT `fk_la_learn_user_roles_user_id` FOREIGN KEY (`la_user_id`) REFERENCES `la_learn_user` (`la_user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------ COURSE TABLE FOR LERNOPUS ------------------------------------------------------------------------------------------
 CREATE TABLE `la_learn_course` (
