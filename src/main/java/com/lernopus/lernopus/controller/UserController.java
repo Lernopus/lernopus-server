@@ -1,5 +1,7 @@
 package com.lernopus.lernopus.controller;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,7 +12,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.lernopus.lernopus.exception.ResourceNotFoundException;
 import com.lernopus.lernopus.model.LaLearnUser;
+import com.lernopus.lernopus.payload.LaCategoryResponse;
 import com.lernopus.lernopus.payload.LaCourseResponse;
+import com.lernopus.lernopus.payload.LaSearchResponse;
 import com.lernopus.lernopus.payload.LaUserSummary;
 import com.lernopus.lernopus.payload.PagedResponse;
 import com.lernopus.lernopus.payload.UserIdentityAvailability;
@@ -20,6 +24,7 @@ import com.lernopus.lernopus.repository.LaUserRepository;
 import com.lernopus.lernopus.security.CurrentUser;
 import com.lernopus.lernopus.security.LaUserPrincipal;
 import com.lernopus.lernopus.service.LaCourseService;
+import com.lernopus.lernopus.service.LaUserService;
 import com.lernopus.lernopus.util.AppConstants;
 
 @RestController
@@ -34,6 +39,9 @@ public class UserController {
 
     @Autowired
     private LaCourseService courseService;
+    
+    @Autowired
+    private LaUserService userService;
 
     @GetMapping("/user/me")
     @PreAuthorize("hasRole('USER')")
@@ -78,8 +86,39 @@ public class UserController {
     public PagedResponse<LaCourseResponse> getCoursesCreatedBy(@PathVariable(value = "username") String username,
                                                          @CurrentUser LaUserPrincipal currentUser,
                                                          @RequestParam(value = "page", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int page,
+                                                         @RequestParam(value = "searchedValue", defaultValue = "") String searchedValue,
                                                          @RequestParam(value = "size", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int size) {
-        return courseService.getCoursesCreatedBy(username, currentUser, page, size);
+        return courseService.getCoursesCreatedBy(username, currentUser, page, size, searchedValue);
     }
+    
+    @GetMapping("/users/{username}/coursesSearch")
+    public List<LaSearchResponse> getCoursesCreatedByForSearch(@PathVariable(value = "username") String username,
+                                                         @CurrentUser LaUserPrincipal currentUser,
+                                                         @RequestParam(value = "searchedValue", defaultValue = "") String searchedValue,
+                                                         @RequestParam(value = "page", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int page,
+                                                         @RequestParam(value = "size", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int size) {
+        return courseService.getCoursesCreatedByForSearch(username, currentUser, page, size, searchedValue);
+    }
+    
+    @GetMapping("/getAuthorToFollow")
+    public PagedResponse<LaUserSummary> getAuthorToFollow(@CurrentUser LaUserPrincipal currentUser,
+                                                @RequestParam(value = "page", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int page,
+                                                @RequestParam(value = "size", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int size,
+                                                @RequestParam(value = "searchedValue", defaultValue = "") String searchedValue,
+                                                @RequestParam(value = "loggedInUserId", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) long loggedInUserId) {
+        return userService.getAllAuthors(loggedInUserId, page, size, searchedValue);
+    }
+    
+    @GetMapping("/getAllAuthorsForCategory")
+    public PagedResponse<LaUserSummary> getAuthorToFollow(@CurrentUser LaUserPrincipal currentUser,
+                                                @RequestParam(value = "page", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int page,
+                                                @RequestParam(value = "size", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int size,
+                                                @RequestParam(value = "searchedValue", defaultValue = "") String searchedValue,
+                                                @RequestParam(value = "loggedInUserId", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) long loggedInUserId,
+                                                @RequestParam(value = "laCategoryId", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) long laCategoryId) {
+        return userService.getAllAuthorsForCategory(laCategoryId, loggedInUserId, page, size, searchedValue);
+    }
+    
+    
     
 }

@@ -6,6 +6,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -30,11 +31,15 @@ import com.lernopus.lernopus.exception.ResourceNotFoundException;
 import com.lernopus.lernopus.model.LaCourseAttachFile;
 import com.lernopus.lernopus.model.LaLearnAttachments;
 import com.lernopus.lernopus.model.LaLearnCourse;
+import com.lernopus.lernopus.model.LaLearnTechnology;
 import com.lernopus.lernopus.model.LaLearnUser;
 import com.lernopus.lernopus.payload.LaCourseRequest;
 import com.lernopus.lernopus.payload.LaCourseResponse;
+import com.lernopus.lernopus.payload.LaSearchResponse;
+import com.lernopus.lernopus.payload.LaUserSummary;
 import com.lernopus.lernopus.payload.PagedResponse;
 import com.lernopus.lernopus.repository.LaAttachRepository;
+import com.lernopus.lernopus.repository.LaCategoryRepository;
 import com.lernopus.lernopus.repository.LaCourseRepository;
 import com.lernopus.lernopus.repository.LaUserRepository;
 import com.lernopus.lernopus.security.LaUserPrincipal;
@@ -52,6 +57,9 @@ public class LaCourseService {
     
     @Autowired
     private LaAttachRepository laAttachRepository;
+    
+    @Autowired
+    private LaCategoryRepository laCategoryRepository;
 
     public PagedResponse<LaCourseResponse> getAllCourses(LaUserPrincipal currentUser, int page, int size) {
         validatePageNumberAndSize(page, size);
@@ -98,17 +106,98 @@ public class LaCourseService {
         return new PagedResponse<>(courseResponses, courses.getNumber(),
                 courses.getSize(), courses.getTotalElements(), courses.getTotalPages(), courses.isLast());
     }
+    
+    public PagedResponse<LaCourseResponse> getAllChildCourses(LaUserPrincipal currentUser, int page, int size, String searchedValue) {
+        validatePageNumberAndSize(page, size);
+
+        // Retrieve Courses
+        Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, "laCreatedAt");
+        Page<LaLearnCourse> courses = null;
+        if(!searchedValue.equalsIgnoreCase(""))
+        {
+        	Pageable userPageable = PageRequest.of(0, size, Sort.Direction.ASC, "laUserFullName");
+            Page<LaLearnUser> users = userRepository.getSearchResultsForUsers(searchedValue, currentUser.getLaUserId(), userPageable);
+            if(users.getNumberOfElements() > 0)
+            {        	
+            	courses = laCourseRepository.findByLaCreatedUser(users.get().findFirst().get().getLaUserId(), pageable);
+            }
+            else
+            {
+            	
+            	courses = laCourseRepository.getAllChildCourseForSearch(pageable, searchedValue);
+            }
+        }
+        else
+        {        	
+        	courses = laCourseRepository.getAllChildCourse(pageable);
+        }
+
+        if(courses.getNumberOfElements() == 0) {
+            return new PagedResponse<>(Collections.emptyList(), courses.getNumber(),
+                    courses.getSize(), courses.getTotalElements(), courses.getTotalPages(), courses.isLast());
+        }
+
+        Map<Long, LaLearnUser> creatorMap = getCourseCreatorMap(courses.getContent());
+
+        List<LaCourseResponse> courseResponses = courses.map(course -> {
+            return ModelMapper.mapCourseToCourseResponse(course,
+                    creatorMap.get(course.getLaCreatedUser()));
+        }).getContent();
+
+        return new PagedResponse<>(courseResponses, courses.getNumber(),
+                courses.getSize(), courses.getTotalElements(), courses.getTotalPages(), courses.isLast());
+    }
+    
+    public PagedResponse<LaCourseResponse> getAllCoursesForCategory(long categoryId, LaUserPrincipal currentUser, int page, int size, String searchedValue) {
+        validatePageNumberAndSize(page, size);
+        
+        LaLearnTechnology laLearnTechnology = laCategoryRepository.getOne(categoryId);
+
+        // Retrieve Courses
+        Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, "laCreatedAt");
+        Page<LaLearnCourse> courses = null;
+        if(!searchedValue.equalsIgnoreCase(""))
+        {
+        	courses = laCourseRepository.getAllCourseForCategoryForSearch(laLearnTechnology, pageable, searchedValue);
+        }
+        else
+        {
+        	courses = laCourseRepository.getAllCourseForCategory(laLearnTechnology, pageable);
+        }
+
+        if(courses.getNumberOfElements() == 0) {
+            return new PagedResponse<>(Collections.emptyList(), courses.getNumber(),
+                    courses.getSize(), courses.getTotalElements(), courses.getTotalPages(), courses.isLast());
+        }
+
+        Map<Long, LaLearnUser> creatorMap = getCourseCreatorMap(courses.getContent());
+
+        List<LaCourseResponse> courseResponses = courses.map(course -> {
+            return ModelMapper.mapCourseToCourseResponse(course,
+                    creatorMap.get(course.getLaCreatedUser()));
+        }).getContent();
+
+        return new PagedResponse<>(courseResponses, courses.getNumber(),
+                courses.getSize(), courses.getTotalElements(), courses.getTotalPages(), courses.isLast());
+    }
 
 
-    public PagedResponse<LaCourseResponse> getCoursesCreatedBy(String username, LaUserPrincipal currentUser, int page, int size) {
+    public PagedResponse<LaCourseResponse> getCoursesCreatedBy(String username, LaUserPrincipal currentUser, int page, int size, String searchedValue) {
         validatePageNumberAndSize(page, size);
 
         LaLearnUser user = userRepository.findByLaUserName(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "username", username));
-
+        Page<LaLearnCourse> courses = null;
         // Retrieve all courses created by the given username
         Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, "laCreatedAt");
-        Page<LaLearnCourse> courses = laCourseRepository.findByLaCreatedUser(user.getLaUserId(), pageable);
+        if(!searchedValue.equalsIgnoreCase(""))
+        {
+        	courses = laCourseRepository.findByLaCreatedUserForSearch(user.getLaUserId(), pageable, searchedValue);
+        }
+        else
+        {        	
+        	courses = laCourseRepository.findByLaCreatedUser(user.getLaUserId(), pageable);
+        }
 
         if (courses.getNumberOfElements() == 0) {
             return new PagedResponse<>(Collections.emptyList(), courses.getNumber(),
@@ -122,6 +211,34 @@ public class LaCourseService {
 
         return new PagedResponse<>(courseResponses, courses.getNumber(),
                 courses.getSize(), courses.getTotalElements(), courses.getTotalPages(), courses.isLast());
+    }
+    
+    public List<LaSearchResponse> getCoursesCreatedByForSearch(String username, LaUserPrincipal currentUser, int page, int size, String searchedValue) {
+        validatePageNumberAndSize(page, size);
+
+        LaLearnUser user = userRepository.findByLaUserName(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "username", username));
+        Page<LaLearnCourse> courses = null;
+        // Retrieve all courses created by the given username
+        Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, "laCreatedAt");
+        if(!searchedValue.equalsIgnoreCase(""))
+        {
+        	courses = laCourseRepository.findByLaCreatedUserForSearch(user.getLaUserId(), pageable, searchedValue);
+        	if(courses.getNumberOfElements() == 0) {
+                return new ArrayList();
+            }
+
+            List<LaSearchResponse> courseResponses = courses.map(course -> {
+                return ModelMapper.mapCourseToSearchResponse(course);
+            }).getContent();
+
+            return courseResponses;
+
+        }
+        else
+        {
+        	return new ArrayList();
+        }
     }
 
     public LaLearnCourse createCourse(LaCourseRequest courseRequest) {
@@ -291,4 +408,134 @@ public class LaCourseService {
         return new PagedResponse<>(courseResponses, courses.getNumber(),
                 courses.getSize(), courses.getTotalElements(), courses.getTotalPages(), courses.isLast());
     }
+    
+    public PagedResponse<LaSearchResponse> getSearchResults(String searchedValue, int size) {
+		
+    	List<LaSearchResponse> searchResponses = new ArrayList<>();
+    	
+    	List<LaSearchResponse> courseResponses = getSearchResultsForCourse(searchedValue, size);
+    	List<LaSearchResponse> courseCreatedByResponses = getSearchResultsForCourseCreatedBy(13,searchedValue, size);
+    	List<LaSearchResponse> officialCategoryResponses = getSearchResultsForOfficialCategory(searchedValue, size);
+    	List<LaSearchResponse> specialCategoryResponses = getSearchResultsForSpecialCategory(searchedValue, size);
+    	List<LaSearchResponse> authorResponses = getSearchResultsForAuthors(0, searchedValue, size);
+    	List<LaSearchResponse> userResponses = getSearchResultsForUsers(13, searchedValue, size);
+    	searchResponses.addAll(courseResponses);
+    	searchResponses.addAll(officialCategoryResponses);
+    	searchResponses.addAll(specialCategoryResponses);
+    	searchResponses.addAll(authorResponses);
+    	searchResponses.addAll(userResponses);
+    	searchResponses.addAll(courseCreatedByResponses);
+        return new PagedResponse<>(searchResponses, 0,
+        		searchResponses.size(), searchResponses.size(), 1, true);
+
+	}
+
+	public List<LaSearchResponse> getSearchResultsForCourse(String searchedValue, int size) {
+		// Retrieve Courses
+        Pageable pageable = PageRequest.of(0, size, Sort.Direction.DESC, "laCreatedAt");
+        Page<LaLearnCourse> courses = laCourseRepository.getSearchResultsForCourse(searchedValue, pageable);
+
+        if(courses.getNumberOfElements() == 0) {
+            return new ArrayList();
+        }
+
+        List<LaSearchResponse> courseResponses = courses.map(course -> {
+            return ModelMapper.mapCourseToSearchResponse(course);
+        }).getContent();
+
+        return courseResponses;
+
+	}
+	
+	public List<LaSearchResponse> getSearchResultsForCourseCreatedBy(long loggedInUserId, String searchedValue, int size) {
+		
+		Pageable userPageable = PageRequest.of(0, size, Sort.Direction.ASC, "laUserFullName");
+        Page<LaLearnUser> users = userRepository.getSearchResultsForUsers(searchedValue, loggedInUserId, userPageable);
+        if(users.getNumberOfElements() > 0)
+        {        	
+        	// Retrieve all courses created by the given username
+        	Pageable pageable = PageRequest.of(0, size, Sort.Direction.DESC, "laCreatedAt");
+        	Page<LaLearnCourse> courses = laCourseRepository.findByLaCreatedUser(users.get().findFirst().get().getLaUserId(), pageable);
+        	if(courses.getNumberOfElements() == 0) {
+        		return new ArrayList();
+        	}
+        	
+        	List<LaSearchResponse> courseResponses = courses.map(course -> {
+        		return ModelMapper.mapCourseToSearchResponse(course);
+        	}).getContent();
+        	
+        	return courseResponses;
+        }
+        else
+        {
+        	return new ArrayList();
+        }
+
+	}
+	
+	public List<LaSearchResponse> getSearchResultsForOfficialCategory(String searchedValue, int size) {
+		// Retrieve Courses
+		Pageable pageable = PageRequest.of(0, size, Sort.Direction.ASC, "laTechId");
+        Page<LaLearnTechnology> categories = laCategoryRepository.getSearchResultsForOfficialCategory(searchedValue, "1", pageable);
+
+        if(categories.getNumberOfElements() == 0) {
+            return new ArrayList();
+        }
+
+        List<LaSearchResponse> courseResponses = categories.map(course -> {
+            return ModelMapper.mapOfficialCategoryToSearchResponse(course);
+        }).getContent();
+
+        return courseResponses;
+
+	}
+	
+	public List<LaSearchResponse> getSearchResultsForSpecialCategory(String searchedValue, int size) {
+		// Retrieve Courses
+		Pageable pageable = PageRequest.of(0, size, Sort.Direction.ASC, "laTechId");
+        Page<LaLearnTechnology> categories = laCategoryRepository.getSearchResultsForSpecialCategory(searchedValue, "2", pageable);
+
+        if(categories.getNumberOfElements() == 0) {
+            return new ArrayList();
+        }
+
+        List<LaSearchResponse> courseResponses = categories.map(course -> {
+            return ModelMapper.mapSpecialCategoryToSearchResponse(course);
+        }).getContent();
+
+        return courseResponses;
+
+	}
+	
+	public List<LaSearchResponse> getSearchResultsForAuthors(long loggedInUserId, String searchedValue, int size) {
+        // Retrieve Courses
+        Pageable pageable = PageRequest.of(0, size, Sort.Direction.ASC, "laUserFullName");
+        Page<LaLearnUser> authors = userRepository.getSearchResultsForAuthors(searchedValue, loggedInUserId, pageable);
+
+        if(authors.getNumberOfElements() == 0) {
+            return new ArrayList();
+        }
+
+        List<LaSearchResponse> authorResponses = authors.map(author -> {
+            return ModelMapper.mapAuthorToSearchResponse(author);
+        }).getContent();
+
+        return authorResponses;
+	}
+	
+	public List<LaSearchResponse> getSearchResultsForUsers(long loggedInUserId, String searchedValue, int size) {
+        // Retrieve Courses
+        Pageable pageable = PageRequest.of(0, size, Sort.Direction.ASC, "laUserFullName");
+        Page<LaLearnUser> authors = userRepository.getSearchResultsForUsers(searchedValue, loggedInUserId, pageable);
+
+        if(authors.getNumberOfElements() == 0) {
+            return new ArrayList();
+        }
+
+        List<LaSearchResponse> authorResponses = authors.map(author -> {
+            return ModelMapper.mapUserToSearchResponse(author);
+        }).getContent();
+
+        return authorResponses;
+	}
 }

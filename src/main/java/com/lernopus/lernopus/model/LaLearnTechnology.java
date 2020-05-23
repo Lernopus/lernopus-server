@@ -27,13 +27,13 @@ public class LaLearnTechnology {
     @Column(name = "la_tech_id")
     private Long laTechId;
 
-	@Column(name = "la_tech_group")
-    @Size(max = 250)
-    private String laTechGroup;
-    
     @Size(max = 250)
     @Column(name = "la_tech_category")
     private String laTechCategory;
+    
+    @Column(name = "la_tech_group")
+    @Size(max = 250)
+    private String laTechGroup;
     
     @Column(name = "id")
     @Size(max = 250)

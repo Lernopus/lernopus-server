@@ -31,6 +31,8 @@ import com.lernopus.lernopus.payload.LaApiResponse;
 import com.lernopus.lernopus.payload.LaCourseRequest;
 import com.lernopus.lernopus.payload.LaCourseResponse;
 import com.lernopus.lernopus.payload.LaCourseUploadFileResponse;
+import com.lernopus.lernopus.payload.LaSearchResponse;
+import com.lernopus.lernopus.payload.LaUserSummary;
 import com.lernopus.lernopus.payload.PagedResponse;
 import com.lernopus.lernopus.security.CurrentUser;
 import com.lernopus.lernopus.security.LaUserPrincipal;
@@ -51,8 +53,9 @@ public class LaCourseController {
     @GetMapping
     public PagedResponse<LaCourseResponse> getCourses(@CurrentUser LaUserPrincipal currentUser,
                                                 @RequestParam(value = "page", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int page,
+                                                @RequestParam(value = "searchedValue", defaultValue = "") String searchedValue,
                                                 @RequestParam(value = "size", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int size) {
-        return courseService.getAllRootCourses(currentUser, page, size);
+        return courseService.getAllChildCourses(currentUser, page, size, searchedValue);
     }
 
     @PostMapping
@@ -124,6 +127,23 @@ public class LaCourseController {
                 .contentType(MediaType.parseMediaType(dbFile.getLaAttachType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + dbFile.getLaAttachName() + "\"")
                 .body(new ByteArrayResource(dbFile.getLaCourseAttachData()));
+    }
+    
+    @GetMapping("/getAllCoursesForCategory")
+    public PagedResponse<LaCourseResponse> getAllCoursesForCategory(@CurrentUser LaUserPrincipal currentUser,
+                                                @RequestParam(value = "page", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int page,
+                                                @RequestParam(value = "size", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int size,
+                                                @RequestParam(value = "searchedValue", defaultValue = "") String searchedValue,
+                                                @RequestParam(value = "loggedInUserId", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) long loggedInUserId,
+                                                @RequestParam(value = "laCategoryId", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) long laCategoryId) {
+        return courseService.getAllCoursesForCategory(laCategoryId, currentUser, page, size, searchedValue);
+    }
+    
+    @GetMapping("/getSearchResults")
+    public PagedResponse<LaSearchResponse> getSearchResults(
+                                                @RequestParam(value = "searchedValue", defaultValue = "") String searchedValue,
+                                                @RequestParam(value = "size", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int size) {
+        return courseService.getSearchResults(searchedValue, size);
     }
 
 
