@@ -29,7 +29,7 @@ import com.lernopus.lernopus.util.AppConstants;
 
 @RestController
 @RequestMapping("/api")
-public class UserController {
+public class LaUserController {
 
     @Autowired
     private LaUserRepository userRepository;
@@ -44,7 +44,7 @@ public class UserController {
     private LaUserService userService;
 
     @GetMapping("/user/me")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('STUDENT') || hasRole('INSTRUCTOR') || hasRole('MANAGER') || hasRole('SUPER_USER')")
     public LaUserSummary getCurrentUser(@CurrentUser LaUserPrincipal currentUser) {
         LaUserSummary userSummary = new LaUserSummary(currentUser.getLaUserId(), currentUser.getUsername(), currentUser.getLaUserFullName(), currentUser.getLaImagePath());
         return userSummary;

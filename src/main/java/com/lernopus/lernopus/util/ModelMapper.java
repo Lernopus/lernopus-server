@@ -6,9 +6,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
-import com.lernopus.lernopus.model.LaLearnAttachments;
 import com.lernopus.lernopus.model.LaLearnCourse;
+import com.lernopus.lernopus.model.LaLearnCourseComments;
+import com.lernopus.lernopus.model.LaLearnCourseRating;
 import com.lernopus.lernopus.model.LaLearnTechnology;
 import com.lernopus.lernopus.model.LaLearnUser;
 import com.lernopus.lernopus.payload.LaCategoryResponse;
@@ -22,27 +25,57 @@ public class ModelMapper {
         LaCourseResponse courseResponse = new LaCourseResponse();
         courseResponse.setLearnCourseId(course.getLaCourseId());
         courseResponse.setLaLearnCourseName(course.getLaCourseName());
+        courseResponse.setLaCourseDescription(course.getLaCourseDescription());
         courseResponse.setLaCreatedAt(course.getLaCreatedAt());
         courseResponse.setLaCourseContentHtml(course.getLaCourseContentHtml());
         courseResponse.setLaCourseContentText(course.getLaCourseContentText());
         courseResponse.setLaIsNote(course.getLaIsNote());
+        courseResponse.setLaAllowComment(course.getLaAllowComment());
+        courseResponse.setLaAllowRating(course.getLaAllowRating());
+        courseResponse.setLaCourseBackgroundImage(course.getLaCourseBackgroundImage());
+        courseResponse.setLaWhatWillILearn(course.getLaWhatWillILearn());
+        courseResponse.setLaPrerequisite(course.getLaPrerequisite());
+        courseResponse.setLaUrlReference(course.getLaUrlReference());
+        courseResponse.setLaSlideShowUrlReference(course.getLaSlideShowUrlReference());
+        courseResponse.setLaVideoUrlReference(course.getLaVideoUrlReference());
+        courseResponse.setAttachmentMeta(course.getAttachmentMeta());
         Set<LaLearnTechnology> techTagSet = course.getLaTechTag();
         List<String> techTagList = new ArrayList<>();
         techTagSet.stream().forEach(techTag ->{
         	techTagList.add(techTag.getName());
         });
         courseResponse.setLaTechTag(techTagList);
-        List<LaLearnAttachments> laLearnAttachmentsList = course.getLaLearnAttachments();
-        List<Map<String,Object>> attachParamList = new ArrayList<>();
-        laLearnAttachmentsList.stream().forEach(learnAttach->{
-        	Map<String,Object> attachParam = new HashMap<>();
-        	attachParam.put("laAttachPreview", learnAttach.getLaAttachPreview());
-        	attachParam.put("laAttachName", learnAttach.getLaAttachName());
-        	attachParam.put("laAttachExtension", learnAttach.getLaAttachExtension());
-        	attachParam.put("laAttachFileRefId", learnAttach.getLaAttachFileRefId());
-        	attachParamList.add(attachParam);
+        
+        List<LaLearnCourseComments> laLearnCommentList = course.getLaLearnCourseComments();
+        List<LaLearnCourseRating> laLearnCourseRatingList = course.getLaLearnCourseRating();
+        List<Map<String,Object>> commentParamParamList = new ArrayList<>();
+        laLearnCommentList.stream().forEach(learnComment ->{
+        	Map<String,Object> commentParam = new HashMap<>();
+        	commentParam.put("laCommentId", learnComment.getLaCommentId());
+        	commentParam.put("laCommentContent", learnComment.getLaCommentContent());
+        	commentParamParamList.add(commentParam);
         });
-        courseResponse.setLaLearnAttachments(attachParamList);
+        courseResponse.setLaLearnCourseComments(commentParamParamList);
+        List<Map<String,Object>> ratingParamParamList = new ArrayList<>();
+        AtomicLong overallRatingValue = new AtomicLong(0L);
+        AtomicInteger overallRatingCount = new AtomicInteger(0);
+        laLearnCourseRatingList.stream().forEach(learnCourseRating ->{
+        	Map<String,Object> ratingParam = new HashMap<>();
+        	ratingParam.put("laUserId", learnCourseRating.getLaLearnUser().getLaUserId());
+        	ratingParam.put("laUserRating", learnCourseRating.getLaUserRating());
+        	ratingParam.put("laUpvoteCount", learnCourseRating.getLaUpvoteCount());
+        	ratingParam.put("laDownvoteCount", learnCourseRating.getLaDownvoteCount());
+        	ratingParam.put("laRatingId", learnCourseRating.getLaRatingId());
+        	overallRatingValue.set(overallRatingValue.get() + learnCourseRating.getLaUserRating());
+        	overallRatingCount.set(overallRatingCount.addAndGet(1));
+        	ratingParamParamList.add(ratingParam);
+        });
+        
+        if(overallRatingValue.get() > 0 && overallRatingCount.get() > 0) {
+        	overallRatingValue.set(overallRatingValue.get() / overallRatingCount.get());
+        }
+        courseResponse.setLaLearnCourseRating(ratingParamParamList);
+        courseResponse.setLaLearnCourseOverallRating(overallRatingValue.get());
         if(Objects.nonNull(creator))
         {
         	LaUserSummary creatorSummary = new LaUserSummary(creator.getLaUserId(), creator.getLaUserName(), creator.getLaUserFullName(),creator.getLaImagePath());

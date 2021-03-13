@@ -45,7 +45,7 @@ public class LaCategoryController {
     }
     
     @GetMapping("/getSubCategories")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('STUDENT') || hasRole('INSTRUCTOR') || hasRole('MANAGER') || hasRole('SUPER_USER')")
     public PagedResponse<LaCategoryResponse> getSubCategories(@CurrentUser LaUserPrincipal currentUser,
     											@RequestParam(value = "categoryId") Long categoryId,
                                                 @RequestParam(value = "page", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int page,
@@ -56,7 +56,7 @@ public class LaCategoryController {
 
 
     @GetMapping("/learnCategoryId/{categoryId}")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('STUDENT') || hasRole('INSTRUCTOR') || hasRole('MANAGER') || hasRole('SUPER_USER')")
     public LaCategoryResponse getCourseById(@CurrentUser LaUserPrincipal currentUser,
     											@PathVariable(value = "categoryId") Long categoryId, 
     											@RequestParam(value = "page", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int page,

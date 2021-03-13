@@ -7,6 +7,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import javax.validation.constraints.NotBlank;
@@ -27,11 +28,10 @@ public class LaLearnCourseComments {
 	@Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "la_comments_id")
-    @Size(max = 20)
     private Long laCommentId;
 
     @NotBlank
-    @Size(max = 250)
+    @Lob
     @Column(name = "la_comment_content")
     private String laCommentContent;
     
@@ -40,16 +40,17 @@ public class LaLearnCourseComments {
     @OnDelete(action = OnDeleteAction.CASCADE)
     @JsonIgnore
     private LaLearnCourse laLearnCourse;
-
+    
     public LaLearnCourseComments() {
 
     }
 
-    public LaLearnCourseComments(String laCommentContent) {
-        this.laCommentContent = laCommentContent;
+    public LaLearnCourseComments(String laCommentContent, LaLearnCourse laLearnCourse) {
+    	this.laCommentContent = laCommentContent;
+    	this.laLearnCourse = laLearnCourse;
     }
 
-    public Long getCommentId() {
+    public Long getLaCommentId() {
         return laCommentId;
     }
 

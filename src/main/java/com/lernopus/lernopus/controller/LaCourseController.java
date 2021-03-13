@@ -22,17 +22,20 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import com.lernopus.lernopus.model.LaCourseAttachFile;
 import com.lernopus.lernopus.model.LaLearnCourse;
+import com.lernopus.lernopus.model.LaLearnCourseComments;
+import com.lernopus.lernopus.model.LaLearnCourseRating;
+import com.lernopus.lernopus.model.LaLearnUserFollowers;
 import com.lernopus.lernopus.payload.LaApiResponse;
+import com.lernopus.lernopus.payload.LaCourseCommentsRequest;
+import com.lernopus.lernopus.payload.LaCourseRatingRequest;
 import com.lernopus.lernopus.payload.LaCourseRequest;
 import com.lernopus.lernopus.payload.LaCourseResponse;
-import com.lernopus.lernopus.payload.LaCourseUploadFileResponse;
+import com.lernopus.lernopus.payload.LaCourseViewRequest;
 import com.lernopus.lernopus.payload.LaSearchResponse;
-import com.lernopus.lernopus.payload.LaUserSummary;
+import com.lernopus.lernopus.payload.LaUserFollowersRequest;
 import com.lernopus.lernopus.payload.PagedResponse;
 import com.lernopus.lernopus.security.CurrentUser;
 import com.lernopus.lernopus.security.LaUserPrincipal;
@@ -59,7 +62,7 @@ public class LaCourseController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('STUDENT') || hasRole('INSTRUCTOR') || hasRole('MANAGER') || hasRole('SUPER_USER')")
     public ResponseEntity<?> createCourse(@Valid @RequestBody LaCourseRequest courseRequest) {
     	LaLearnCourse course = courseService.createCourse(courseRequest);
 
@@ -91,42 +94,36 @@ public class LaCourseController {
     }
 
     @GetMapping("/learnCourseId/{learnCourseId}")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('STUDENT') || hasRole('INSTRUCTOR') || hasRole('MANAGER') || hasRole('SUPER_USER')")
     public LaCourseResponse getLaCourseDetails(@PathVariable(value = "learnCourseId") String laCourseId,
                                                          @CurrentUser LaUserPrincipal currentUser,@RequestParam(value = "page", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int page,
                                                          @RequestParam(value = "size", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int size) {
     	LaCourseResponse courseById = courseService.getCourseById(Long.valueOf(laCourseId), currentUser);
     	PagedResponse<LaCourseResponse> childCoursePageResponse = courseService.getAllChildCourses(Long.valueOf(laCourseId), currentUser,page,size);
     	courseById.setChildCoursePageResponse(childCoursePageResponse);
+    	LaCourseViewRequest laCourseViewRequest = new LaCourseViewRequest(laCourseId, String.valueOf(currentUser.getLaUserId()));
+    	courseService.uploadCourseViewCount(laCourseViewRequest);
         return courseById;
     }
     
-    @PostMapping("/uploadFile")
-    public LaCourseUploadFileResponse uploadFile(@RequestParam("file") MultipartFile file) {
-        LaCourseAttachFile dbFile = courseService.storeFile(file);
-
-        String fileDownloadUri = dbFile.getLaCourseAttachId();
-
-        return new LaCourseUploadFileResponse(fileDownloadUri);
+    @PostMapping("/uploadComments")
+    public LaLearnCourseComments uploadComments(@Valid @RequestBody LaCourseCommentsRequest laCourseCommentsRequest) {
+        return courseService.addComments(laCourseCommentsRequest);
     }
-
-    @PostMapping("/uploadMultipleFiles")
-    public List<LaCourseUploadFileResponse> uploadMultipleFiles(@RequestParam("files") MultipartFile[] files) {
-        return Arrays.asList(files)
-                .stream()
-                .map(file -> uploadFile(file))
-                .collect(Collectors.toList());
+    
+    @PostMapping("/uploadRating")
+    public LaLearnCourseRating uploadRating(@Valid @RequestBody LaCourseRatingRequest laCourseRatingRequest) {
+        return courseService.addRating(laCourseRatingRequest);
     }
-
-    @GetMapping("/downloadFile/{fileId}")
-    public ResponseEntity<Resource> downloadFile(@PathVariable String fileId) {
-        // Load file from database
-    	LaCourseAttachFile dbFile = courseService.getFile(fileId);
-
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(dbFile.getLaAttachType()))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + dbFile.getLaAttachName() + "\"")
-                .body(new ByteArrayResource(dbFile.getLaCourseAttachData()));
+    
+    @PostMapping("/uploadCourseViewCount")
+    public LaLearnCourseRating uploadCourseViewCount(@Valid @RequestBody LaCourseViewRequest laCourseViewRequest) {
+        return courseService.uploadCourseViewCount(laCourseViewRequest);
+    }
+    
+    @PostMapping("/addFollowersForUser")
+    public LaLearnUserFollowers addFollowersForUser(@Valid @RequestBody LaUserFollowersRequest laUserFollowersRequest) {
+        return courseService.addFollowersForUser(laUserFollowersRequest);
     }
     
     @GetMapping("/getAllCoursesForCategory")
@@ -144,6 +141,13 @@ public class LaCourseController {
                                                 @RequestParam(value = "searchedValue", defaultValue = "") String searchedValue,
                                                 @RequestParam(value = "size", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int size) {
         return courseService.getSearchResults(searchedValue, size);
+    }
+    
+    @GetMapping("/getSearchResultsForParentMapping")
+    public PagedResponse<LaSearchResponse> getSearchResultsForParentMapping(
+                                                @RequestParam(value = "searchedValue", defaultValue = "") String searchedValue,
+                                                @RequestParam(value = "size", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int size) {
+        return courseService.getSearchResultsForParentMapping(searchedValue, size);
     }
 
 

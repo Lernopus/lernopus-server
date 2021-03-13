@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -28,19 +29,26 @@ import com.lernopus.lernopus.exception.BadRequestException;
 import com.lernopus.lernopus.exception.FileStorageException;
 import com.lernopus.lernopus.exception.MyFileNotFoundException;
 import com.lernopus.lernopus.exception.ResourceNotFoundException;
-import com.lernopus.lernopus.model.LaCourseAttachFile;
-import com.lernopus.lernopus.model.LaLearnAttachments;
 import com.lernopus.lernopus.model.LaLearnCourse;
+import com.lernopus.lernopus.model.LaLearnCourseComments;
+import com.lernopus.lernopus.model.LaLearnCourseRating;
 import com.lernopus.lernopus.model.LaLearnTechnology;
 import com.lernopus.lernopus.model.LaLearnUser;
+import com.lernopus.lernopus.model.LaLearnUserFollowers;
+import com.lernopus.lernopus.payload.LaCourseCommentsRequest;
+import com.lernopus.lernopus.payload.LaCourseRatingRequest;
 import com.lernopus.lernopus.payload.LaCourseRequest;
 import com.lernopus.lernopus.payload.LaCourseResponse;
+import com.lernopus.lernopus.payload.LaCourseViewRequest;
 import com.lernopus.lernopus.payload.LaSearchResponse;
+import com.lernopus.lernopus.payload.LaUserFollowersRequest;
 import com.lernopus.lernopus.payload.LaUserSummary;
 import com.lernopus.lernopus.payload.PagedResponse;
-import com.lernopus.lernopus.repository.LaAttachRepository;
 import com.lernopus.lernopus.repository.LaCategoryRepository;
+import com.lernopus.lernopus.repository.LaCourseCommentRepository;
+import com.lernopus.lernopus.repository.LaCourseRatingRepository;
 import com.lernopus.lernopus.repository.LaCourseRepository;
+import com.lernopus.lernopus.repository.LaUserFollowersRepository;
 import com.lernopus.lernopus.repository.LaUserRepository;
 import com.lernopus.lernopus.security.LaUserPrincipal;
 import com.lernopus.lernopus.util.AppConstants;
@@ -56,10 +64,16 @@ public class LaCourseService {
     private LaUserRepository userRepository;
     
     @Autowired
-    private LaAttachRepository laAttachRepository;
+    private LaCategoryRepository laCategoryRepository;
     
     @Autowired
-    private LaCategoryRepository laCategoryRepository;
+    private LaCourseCommentRepository laCourseCommentRepository;
+    
+    @Autowired
+    private LaCourseRatingRepository laCourseRatingRepository;
+    
+    @Autowired
+    private LaUserFollowersRepository laUserFollowersRepository;
 
     public PagedResponse<LaCourseResponse> getAllCourses(LaUserPrincipal currentUser, int page, int size) {
         validatePageNumberAndSize(page, size);
@@ -244,21 +258,21 @@ public class LaCourseService {
     public LaLearnCourse createCourse(LaCourseRequest courseRequest) {
         LaLearnCourse course = new LaLearnCourse();
         course.setLaCourseName(courseRequest.getLaCourseName());
+        course.setLaCourseDescription(courseRequest.getLaCourseDescription());
+        course.setLaCourseBackgroundImage(courseRequest.getLaCourseBackgroundImage());
         course.setLaCourseContentHtml(courseRequest.getLaCourseContentHtml());
         course.setLaCourseContentText(courseRequest.getLaCourseContentText());
         course.setLaIsNote(courseRequest.getLaIsNote());
         course.setLaAuthorId(courseRequest.getLaAuthorId());
         course.setLaTechTag(courseRequest.getLaTechTag());
-        courseRequest.getLaLearnAttachments().forEach(attachRequest -> {
-        	LaLearnAttachments laLearnAttachments;
-			try {
-				laLearnAttachments = new LaLearnAttachments(attachRequest.getLaAttachName(), attachRequest.getLaAttachExtension(), attachRequest.getLaAttachFileId(), attachRequest.getLaAttachPreview(), attachRequest.getLaAttachSizeReadable(), attachRequest.getLaAttachFileRefId());
-				course.addLaLearnAttachment(laLearnAttachments);
-			} catch (JsonProcessingException e) {
-				e.printStackTrace();
-			}
-        });
-
+        course.setLaAllowComment(courseRequest.getLaAllowComment());
+        course.setLaAllowRating(courseRequest.getLaAllowRating());
+        course.setLaWhatWillILearn(courseRequest.getLaWhatWillILearn());
+        course.setLaPrerequisite(courseRequest.getLaPrerequisite());
+        course.setLaUrlReference(courseRequest.getLaUrlReference());
+        course.setLaSlideShowUrlReference(courseRequest.getLaSlideShowUrlReference());
+        course.setLaVideoUrlReference(courseRequest.getLaVideoUrlReference());
+        course.setAttachmentMeta(courseRequest.getAttachmentMeta());
         return laCourseRepository.save(course);
     }
 
@@ -315,75 +329,72 @@ public class LaCourseService {
         return creatorMap;
     }
     
-    public LaCourseAttachFile storeFile(MultipartFile file) {
-        String fileName = StringUtils.cleanPath(file.getOriginalFilename());
-        String checksum = "";
-        try {
-            if(fileName.contains("..")) {
-                throw new FileStorageException("Sorry! Filename contains invalid path sequence " + fileName);
-            }
-            MessageDigest md5Digest;
-			try {
-				md5Digest = MessageDigest.getInstance("MD5");
-				File tempFile = File.createTempFile(fileName, null, null);
-				FileOutputStream fos = new FileOutputStream(tempFile);
-				fos.write(file.getBytes());
-				fos.close();
-				checksum = getFileChecksum(md5Digest, tempFile);
-			} catch (NoSuchAlgorithmException e) {
-				e.printStackTrace();
-			}
-			Optional<LaCourseAttachFile> existingFile = laAttachRepository.findById(checksum);
-			if(existingFile.isPresent())
-			{
-				return laAttachRepository.findById(checksum)
-		                .orElseThrow(() -> new MyFileNotFoundException("File not found with id " + fileName));
-			}
-			else
-			{
-				LaCourseAttachFile dbFile = new LaCourseAttachFile(checksum, fileName, file.getContentType(), file.getBytes());
-				return laAttachRepository.save(dbFile);
-			}
-        } catch (IOException ex) {
-            throw new FileStorageException("Could not store file " + fileName + ". Please try again!", ex);
-        }
-    }
-
-    public LaCourseAttachFile getFile(String fileId) {
-        return laAttachRepository.findById(fileId)
-                .orElseThrow(() -> new MyFileNotFoundException("File not found with id " + fileId));
+    public LaLearnCourseComments addComments(LaCourseCommentsRequest laCourseCommentsRequest) {
+    	LaLearnCourse course = laCourseRepository.findById(Long.valueOf(laCourseCommentsRequest.getLaCourseId())).orElseThrow(
+                () -> new ResourceNotFoundException("Course", "id", Long.valueOf(laCourseCommentsRequest.getLaCourseId())));
+    	if(Objects.nonNull(course)) {
+    		LaLearnCourseComments laLearnCourseComments = new LaLearnCourseComments(laCourseCommentsRequest.getLaCourseCommentsContent(), course);
+    		return laCourseCommentRepository.save(laLearnCourseComments);
+    	} else {
+    		return null;
+    	}
     }
     
-    private static String getFileChecksum(MessageDigest digest, File file) throws IOException
-    {
-        //Get file input stream for reading the file content
-        FileInputStream fis = new FileInputStream(file);
-         
-        //Create byte array to read data in chunks
-        byte[] byteArray = new byte[1024];
-        int bytesCount = 0; 
-          
-        //Read file data and update in message digest
-        while ((bytesCount = fis.read(byteArray)) != -1) {
-            digest.update(byteArray, 0, bytesCount);
-        };
-         
-        //close the stream; We don't need it now.
-        fis.close();
-         
-        //Get the hash's bytes
-        byte[] bytes = digest.digest();
-         
-        //This bytes[] has bytes in decimal format;
-        //Convert it to hexadecimal format
-        StringBuilder sb = new StringBuilder();
-        for(int i=0; i< bytes.length ;i++)
-        {
-            sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
-        }
-         
-        //return complete hash
-       return sb.toString();
+    public LaLearnCourseRating addRating(LaCourseRatingRequest laCourseRatingRequest) {
+    	LaLearnCourse course = laCourseRepository.findById(Long.valueOf(laCourseRatingRequest.getLaCourseId())).orElseThrow(
+                () -> new ResourceNotFoundException("Course", "id", Long.valueOf(laCourseRatingRequest.getLaCourseId())));
+    	LaLearnUser creator = userRepository.findById(Long.valueOf(laCourseRatingRequest.getLaUserId()))
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", Long.valueOf(laCourseRatingRequest.getLaUserId())));
+    	Pageable pageable = PageRequest.of(0, 1, Sort.Direction.ASC, "laRatingId");
+    	Page<LaLearnCourseRating> laLearnCourseRatingExists = laCourseRatingRepository.findByUserAndCourse(Long.valueOf(laCourseRatingRequest.getLaCourseId()), Long.valueOf(laCourseRatingRequest.getLaUserId()), pageable);
+    	laLearnCourseRatingExists.getContent().size();
+    	if(Objects.nonNull(course) && Objects.nonNull(creator)) {
+    		if(laLearnCourseRatingExists.getContent().size() > 0) {
+    			LaLearnCourseRating laLearnCourseRating = new LaLearnCourseRating(laCourseRatingRequest.getLaUpvoteCount(), laCourseRatingRequest.getLaDownvoteCount(), laCourseRatingRequest.getLaUserRating(), laLearnCourseRatingExists.getContent().get(0).getLaNoOfViews(), course, creator, Long.valueOf(laCourseRatingRequest.getLaCourseId()), Long.valueOf(laCourseRatingRequest.getLaUserId()));
+    			laCourseRatingRepository.updateRatingByUserOnCourse(Long.valueOf(laCourseRatingRequest.getLaCourseId()), Long.valueOf(laCourseRatingRequest.getLaUserId()), laCourseRatingRequest.getLaUserRating(), laCourseRatingRequest.getLaUpvoteCount(), laCourseRatingRequest.getLaDownvoteCount());
+        		return laLearnCourseRating;
+    		} else {
+    			LaLearnCourseRating laLearnCourseRating = new LaLearnCourseRating(laCourseRatingRequest.getLaUpvoteCount(), laCourseRatingRequest.getLaDownvoteCount(), laCourseRatingRequest.getLaUserRating(), 0L, course, creator, Long.valueOf(laCourseRatingRequest.getLaCourseId()), Long.valueOf(laCourseRatingRequest.getLaUserId()));
+        		return laCourseRatingRepository.save(laLearnCourseRating);	
+    		}
+    	} else {
+    		return null;
+    	}
+    }
+    
+    public LaLearnCourseRating uploadCourseViewCount(LaCourseViewRequest laCourseViewRequest) {
+    	LaLearnCourse course = laCourseRepository.findById(Long.valueOf(laCourseViewRequest.getLaCourseId())).orElseThrow(
+                () -> new ResourceNotFoundException("Course", "id", Long.valueOf(laCourseViewRequest.getLaCourseId())));
+    	LaLearnUser creator = userRepository.findById(Long.valueOf(laCourseViewRequest.getLaUserId()))
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", Long.valueOf(laCourseViewRequest.getLaUserId())));
+    	Pageable pageable = PageRequest.of(0, 1, Sort.Direction.ASC, "laRatingId");
+    	Page<LaLearnCourseRating> laLearnCourseRatingExists = laCourseRatingRepository.findByUserAndCourse(Long.valueOf(laCourseViewRequest.getLaCourseId()), Long.valueOf(laCourseViewRequest.getLaUserId()), pageable);
+    	laLearnCourseRatingExists.getContent().size();
+    	if(Objects.nonNull(course) && Objects.nonNull(creator)) {
+    		if(laLearnCourseRatingExists.getContent().size() > 0) {
+    			LaLearnCourseRating laLearnCourseRating = new LaLearnCourseRating(laLearnCourseRatingExists.getContent().get(0).getLaUpvoteCount(), laLearnCourseRatingExists.getContent().get(0).getLaDownvoteCount(), laLearnCourseRatingExists.getContent().get(0).getLaUserRating(), laLearnCourseRatingExists.getContent().get(0).getLaNoOfViews() + 1L, course, creator, Long.valueOf(laCourseViewRequest.getLaCourseId()), Long.valueOf(laCourseViewRequest.getLaUserId()));
+    			laCourseRatingRepository.updateViewsByUserOnCourse(Long.valueOf(laCourseViewRequest.getLaCourseId()), Long.valueOf(laCourseViewRequest.getLaUserId()), laLearnCourseRatingExists.getContent().get(0).getLaNoOfViews() + 1);
+        		return laLearnCourseRating;
+    		} else {
+    			LaLearnCourseRating laLearnCourseRating = new LaLearnCourseRating(0L, 0L, 0L, 1L, course, creator, Long.valueOf(laCourseViewRequest.getLaCourseId()), Long.valueOf(laCourseViewRequest.getLaUserId()));
+        		return laCourseRatingRepository.save(laLearnCourseRating);	
+    		}
+    	} else {
+    		return null;
+    	}
+    }
+    
+    public LaLearnUserFollowers addFollowersForUser(LaUserFollowersRequest laCourseRatingRequest) {
+    	LaLearnUser user = userRepository.findById(Long.valueOf(laCourseRatingRequest.getLaUserId()))
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", Long.valueOf(laCourseRatingRequest.getLaUserId())));
+    	LaLearnUser userFollowers = userRepository.findById(Long.valueOf(laCourseRatingRequest.getLaUserFollowerId()))
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", Long.valueOf(laCourseRatingRequest.getLaUserFollowerId())));
+    	if(Objects.nonNull(user) && Objects.nonNull(userFollowers)) {
+    		LaLearnUserFollowers laLearnUserFollowers = new LaLearnUserFollowers(user, userFollowers);
+    		return laUserFollowersRepository.save(laLearnUserFollowers);
+    	} else {
+    		return null;
+    	}
     }
 
     public PagedResponse<LaCourseResponse> getAllChildCourses(Long courseId, LaUserPrincipal currentUser, int page, int size) {
@@ -429,11 +440,38 @@ public class LaCourseService {
         		searchResponses.size(), searchResponses.size(), 1, true);
 
 	}
+    
+    public PagedResponse<LaSearchResponse> getSearchResultsForParentMapping(String searchedValue, int size) {
+		
+    	List<LaSearchResponse> searchResponses = new ArrayList<>();
+    	List<LaSearchResponse> courseResponses = getSearchResultsForParentCourse(searchedValue, size);
+    	searchResponses.addAll(courseResponses);
+        return new PagedResponse<>(searchResponses, 0,
+        		searchResponses.size(), searchResponses.size(), 1, true);
+
+	}
 
 	public List<LaSearchResponse> getSearchResultsForCourse(String searchedValue, int size) {
 		// Retrieve Courses
         Pageable pageable = PageRequest.of(0, size, Sort.Direction.DESC, "laCreatedAt");
         Page<LaLearnCourse> courses = laCourseRepository.getSearchResultsForCourse(searchedValue, pageable);
+
+        if(courses.getNumberOfElements() == 0) {
+            return new ArrayList();
+        }
+
+        List<LaSearchResponse> courseResponses = courses.map(course -> {
+            return ModelMapper.mapCourseToSearchResponse(course);
+        }).getContent();
+
+        return courseResponses;
+
+	}
+	
+	public List<LaSearchResponse> getSearchResultsForParentCourse(String searchedValue, int size) {
+		// Retrieve Courses
+        Pageable pageable = PageRequest.of(0, size, Sort.Direction.DESC, "laCreatedAt");
+        Page<LaLearnCourse> courses = laCourseRepository.getSearchResultsForParentCourse(searchedValue, pageable);
 
         if(courses.getNumberOfElements() == 0) {
             return new ArrayList();

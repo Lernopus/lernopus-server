@@ -4,11 +4,8 @@ import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
-
-import com.lernopus.lernopus.model.LaLearnAttachments;
 import com.lernopus.lernopus.model.LaLearnTechnology;
 
-import java.util.List;
 import java.util.Set;
 
 public class LaCourseRequest {
@@ -17,16 +14,24 @@ public class LaCourseRequest {
     private String laCourseName;
     
     @Valid
+    private String laCourseDescription;
+    
+    @Valid
+    private String laCourseBackgroundImage;
+    
+    @Valid
+    private Boolean laAllowComment;
+    
+    @Valid
+    private Boolean laAllowRating;
+    
+    @Valid
     @NotNull
     private String laCourseContentText;
     
     @Valid
     @NotNull
     private String laCourseContentHtml;
-
-    @NotNull
-    @Valid
-    private List<LaLearnAttachments> laLearnAttachments;
     
     @Size(max = 8)
     @Valid
@@ -47,13 +52,63 @@ public class LaCourseRequest {
     @Valid
     private Long laCourseRootId;
     
-
+    @Valid
+    private String laWhatWillILearn;
+    
+    @Valid
+    private String laPrerequisite;
+    
+    @Valid
+    private String laUrlReference;
+    
+    @Valid
+    private String laSlideShowUrlReference;
+    
+    @Valid
+    private String laVideoUrlReference;
+    
+    @Valid
+	private String attachmentMeta;
+    
     public String getLaCourseName() {
         return laCourseName;
     }
 
     public void setLaCourseName(String laCourseName) {
         this.laCourseName = laCourseName;
+    }
+    
+    public String getLaCourseDescription() {
+        return laCourseDescription;
+    }
+
+    public void setLaCourseDescription(String laCourseDescription) {
+        this.laCourseDescription = laCourseDescription;
+    }
+    
+    public String getLaCourseBackgroundImage() {
+        return laCourseBackgroundImage;
+    }
+
+    public void setLaCourseBackgroundImage(String laCourseBackgroundImage) {
+        this.laCourseBackgroundImage = laCourseBackgroundImage;
+    }
+
+    
+    public Boolean getLaAllowComment() {
+        return laAllowComment;
+    }
+
+    public void setLaAllowComment(Boolean laAllowComment) {
+        this.laAllowComment = laAllowComment;
+    }
+    
+    public Boolean getLaAllowRating() {
+        return laAllowRating;
+    }
+
+    public void setLaAllowRating(Boolean laAllowRating) {
+        this.laAllowRating = laAllowRating;
     }
 
     public String getLaAuthorId() {
@@ -70,14 +125,6 @@ public class LaCourseRequest {
 
     public void setLaIsNote(Boolean laIsNote) {
         this.laIsNote = laIsNote;
-    }
-    
-    public List<LaLearnAttachments> getLaLearnAttachments() {
-        return laLearnAttachments;
-    }
-
-    public void setLaLearnAttachments(List<LaLearnAttachments> laLearnAttachments) {
-        this.laLearnAttachments = laLearnAttachments;
     }
     
     public Set<LaLearnTechnology> getLaTechTag() {
@@ -119,5 +166,54 @@ public class LaCourseRequest {
     public void setLaCourseRootId(Long laCourseRootId) {
         this.laCourseRootId = laCourseRootId;
     }
+    
+    public String getLaWhatWillILearn() {
+        return laWhatWillILearn;
+    }
 
+    public void setLaWhatWillILearn(String laWhatWillILearn) {
+        this.laWhatWillILearn = laWhatWillILearn;
+    }
+
+    
+    public String getLaPrerequisite() {
+        return laPrerequisite;
+    }
+
+    public void setLaPrerequisite(String laPrerequisite) {
+        this.laPrerequisite = laPrerequisite;
+    }
+    
+    public String getLaUrlReference() {
+        return laUrlReference;
+    }
+
+    public void setLaUrlReference(String laUrlReference) {
+        this.laUrlReference = laUrlReference;
+    }
+    
+    public String getLaSlideShowUrlReference() {
+        return laSlideShowUrlReference;
+    }
+
+    public void setLaSlideShowUrlReference(String laSlideShowUrlReference) {
+        this.laSlideShowUrlReference = laSlideShowUrlReference;
+    }
+    
+    public String getLaVideoUrlReference() {
+        return laVideoUrlReference;
+    }
+
+    public void setLaVideoUrlReference(String laVideoUrlReference) {
+        this.laVideoUrlReference = laVideoUrlReference;
+    }
+
+    public String getAttachmentMeta() {
+        return attachmentMeta;
+    }
+
+    public void setAttachmentMeta(String attachmentMeta) {
+        this.attachmentMeta = attachmentMeta;
+    }
+    
 }

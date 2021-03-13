@@ -56,10 +56,20 @@ CREATE TABLE `la_learn_user_roles` (
 CREATE TABLE `la_learn_course` (
   `la_course_id` bigint(20) NOT NULL AUTO_INCREMENT,
   `la_course_name` varchar(250) NOT NULL,
+  `la_course_description` varchar(1000) NOT NULL,
   `la_course_content_text` longtext NOT NULL,
   `la_course_content_html` longtext NOT NULL,
   `la_author_id` bigint(20) NOT NULL,
   `la_is_note` binary default false,
+  `la_allow_comment` binary default false,
+  `la_allow_rating` binary default false,
+  `la_what_will_i_learn` longtext DEFAULT NULL,
+  `la_prerequisite` longtext DEFAULT NULL,
+  `la_url_reference` longtext DEFAULT NULL,
+  `la_slide_show_url_reference` DEFAULT NULL,
+  `la_video_url_reference` longtext DEFAULT NULL,
+  `la_course_background_image` longtext DEFAULT NULL,
+  `la_file_and_url_mapping` longtext DEFAULT NULL,
   `la_course_parent_id` bigint(20) NOT NULL,
   `la_course_root_id` bigint(20) NOT NULL,
   `la_created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
@@ -68,26 +78,6 @@ CREATE TABLE `la_learn_course` (
   `la_updated_user` bigint(20) DEFAULT NULL,
   PRIMARY KEY (`la_course_id`),
   CONSTRAINT `fk_la_learn_course_author_id` FOREIGN KEY (`la_author_id`) REFERENCES `la_learn_user` (`la_user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
------------------------------------------------------------------------------- ATTACHMENT TABLE FOR LERNOPUS --------------------------------------------------------------------------------------
-
-CREATE TABLE `la_learn_attachments` (
-  `la_attach_id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `la_course_id` bigint(20) NOT NULL,
-  `la_attach_name` varchar NOT NULL,
-  `la_attach_extension` varchar NOT NULL,
-  `la_attach_file_id` varchar NOT NULL,
-  `la_attach_preview` blob NOT NULL,
-  `la_attach_size_readable` varchar NOT NULL,
-  `la_attach_file_ref_id` varchar NOT NULL,
-  `la_created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-  `la_updated_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-  `la_created_user` bigint(20) DEFAULT NULL,
-  `la_updated_user` bigint(20) DEFAULT NULL,
-  PRIMARY KEY (`la_attach_id`, la_course_id),
-  CONSTRAINT `fk_la_learn_attachments_course_id` FOREIGN KEY (`la_course_id`) REFERENCES `la_learn_course` (`la_course_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -108,17 +98,24 @@ CREATE TABLE `la_learn_technology` (
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------ RATING TABLE FOR LERNOPUS ------------------------------------------------------------------------------------------
 CREATE TABLE `la_learn_course_rating` (
-  `la_course_id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `la_rating_id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `la_course_id` bigint(20) NOT NULL,
   `la_upvote_count` bigint(20) NOT NULL,
   `la_downvote_count` bigint(20) NOT NULL,
   `la_user_rating` bigint(20) NOT NULL,
-  `la_admin_rating` bigint(20) NOT NULL,
+  `la_no_of_views` bigint(20) NOT NULL,
+  `la_user_id` bigint(20) NOT NULL,
+  `la_user_id_reference` bigint(20) NOT NULL,
+  `la_course_id_reference` bigint(20) NOT NULL,
   `la_created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
   `la_updated_at` timestamp DEFAULT CURRENT_TIMESTAMP,
   `la_created_user` bigint(20) DEFAULT NULL,
   `la_updated_user` bigint(20) DEFAULT NULL,
-  PRIMARY KEY (`la_course_id`),
+  PRIMARY KEY (`la_rating_id`),
+  UNIQUE KEY `la_learn_course_rating_course_id` (`la_course_id`),
+  UNIQUE KEY `la_learn_course_rating_user_id` (`la_user_id`)
   CONSTRAINT `fk_la_learn_course_rating_course_id` FOREIGN KEY (`la_course_id`) REFERENCES `la_learn_course` (`la_course_id`)
+  CONSTRAINT `fk_la_learn_course_rating_user_id` FOREIGN KEY (`la_user_id`) REFERENCES `la_learn_user` (`la_user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -170,12 +167,12 @@ CREATE TABLE `la_learn_course_tech` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
------------------------------------------------------------------------------- COURSE - TECH LINK TABLE FOR LERNOPUS --------------------------------------------------------------------------------
------------------------------------------------------------------------------- MANY TO MANY MAPPING - COURSE TECH MAPPING ---------------------------------------------------------------------------
+------------------------------------------------------------------------------ COURSE - COMMENT LINK TABLE FOR LERNOPUS --------------------------------------------------------------------------------
+------------------------------------------------------------------------------ MANY TO MANY MAPPING - COURSE COMMENT MAPPING ---------------------------------------------------------------------------
 CREATE TABLE `la_learn_course_comments` (
   `la_course_id` bigint(20) NOT NULL,
   `la_comments_id` bigint(20) NOT NULL,
-  `la_comments_content` bigint(20) NOT NULL,
+  `la_comments_content` longtext NOT NULL,
   `la_created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
   `la_updated_at` timestamp DEFAULT CURRENT_TIMESTAMP,
   `la_created_user` bigint(20) DEFAULT NULL,
@@ -183,6 +180,23 @@ CREATE TABLE `la_learn_course_comments` (
   PRIMARY KEY (`la_comments_id`),
   KEY `fk_la_learn_course_comments_comments_id` (`la_comments_id`),
   CONSTRAINT `fk_la_learn_course_comments_course_id` FOREIGN KEY (`la_course_id`) REFERENCES `la_learn_course` (`la_course_id`),
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------ USER - FOLLOWERS LINK TABLE FOR LERNOPUS --------------------------------------------------------------------------------
+------------------------------------------------------------------------------ MANY TO MANY MAPPING - USER - FOLLOWERS MAPPING ---------------------------------------------------------------------------
+CREATE TABLE `la_learn_user_followers` (
+  `la_followers_id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `la_user_id` bigint(20) NOT NULL,
+  `la_user_follower_id` bigint(20) NOT NULL,
+  `la_created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  `la_updated_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  `la_created_user` bigint(20) DEFAULT NULL,
+  `la_updated_user` bigint(20) DEFAULT NULL,
+  PRIMARY KEY (`la_followers_id`),
+  KEY `fk_la_learn_user_followers_follower_id` (`la_followers_id`),
+  CONSTRAINT `fk_la_learn_user_followers_user_id` FOREIGN KEY (`la_user_id`) REFERENCES `la_learn_user` (`la_user_id`),
+  CONSTRAINT `fk_la_learn_user_followers_user_follower_id` FOREIGN KEY (`la_user_follower_id`) REFERENCES `la_learn_user` (`la_user_id`),
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

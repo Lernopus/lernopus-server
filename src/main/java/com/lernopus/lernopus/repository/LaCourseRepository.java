@@ -70,4 +70,7 @@ public interface LaCourseRepository extends JpaRepository<LaLearnCourse, Long> {
     @Query("Select cin from LaLearnCourse as cin where laCourseParentId != 1 and laCourseParentId != 2 and (laCourseName like %:searchedValue% or laCourseContentHtml like %:searchedValue%)")
 	Page<LaLearnCourse> getSearchResultsForCourse(@Param("searchedValue") String searchedValue, Pageable pageable);
     
+    @Query("Select cin from LaLearnCourse as cin where (laCourseName like %:searchedValue%)")
+	Page<LaLearnCourse> getSearchResultsForParentCourse(@Param("searchedValue") String searchedValue, Pageable pageable);
+    
 }

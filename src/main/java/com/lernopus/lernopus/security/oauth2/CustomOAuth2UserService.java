@@ -86,7 +86,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         user.setLaUserName(oAuth2UserInfo.getEmail().split("@")[0].replaceAll(" ", "").toLowerCase());
         user.setLaPassword(passwordEncoder.encode(oAuth2UserInfo.getEmail().split("@")[0].replaceAll(" ", "").toLowerCase()));
         user.setLaImagePath(oAuth2UserInfo.getImageUrl());
-        LaLearnRole userRole = roleRepository.findByLaRoleName(LaRoleName.ROLE_USER)
+        LaLearnRole userRole = roleRepository.findByLaRoleName(LaRoleName.ROLE_STUDENT)
                 .orElseThrow(() -> new AppException("User Role not set."));
 
         user.setLaRoles(Collections.singleton(userRole));

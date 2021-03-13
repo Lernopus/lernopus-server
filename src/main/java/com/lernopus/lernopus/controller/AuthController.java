@@ -93,7 +93,7 @@ public class AuthController {
         user.setLaPassword(passwordEncoder.encode(user.getLaPassword()));
         user.setProvider(AuthProvider.local);
 
-        LaLearnRole userRole = roleRepository.findByLaRoleName(LaRoleName.ROLE_USER)
+        LaLearnRole userRole = roleRepository.findByLaRoleName(LaRoleName.ROLE_STUDENT)
                 .orElseThrow(() -> new AppException("User Role not set."));
 
         user.setLaRoles(Collections.singleton(userRole));
