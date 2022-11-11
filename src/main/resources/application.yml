@@ -6,7 +6,7 @@ logging:
 server:
     compression:
         enabled: true
-    port: 1010
+    port: ${PORT:1010}
 spring:
     datasource:
         initialization-mode: always
